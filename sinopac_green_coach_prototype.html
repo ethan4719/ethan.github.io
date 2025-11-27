@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SinoPac Green Coach - Prototype</title>
+    <style>
+        :root {
+            /* 永豐 DAWHO 風格配色 + 綠色減碳主題 */
+            --dawho-bg: #1a1a1a;       /* 大戶黑 */
+            --dawho-gold: #c5a065;     /* 大戶金 */
+            --primary-green: #008f4c;  /* 永豐綠 */
+            --ctl-blue: #00a0e9;       /* 科技/數據藍 (Wahoo風格) */
+
+            --app-bg: #f5f5f5;
+            --card-white: #ffffff;
+            --text-dark: #333333;
+            --text-grey: #888888;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: #333; /* 網頁背景深色，突顯手機 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 手機外框模擬 */
+        .iphone-frame {
+            width: 375px;
+            height: 812px;
+            background-color: var(--app-bg);
+            border-radius: 40px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 8px solid #000;
+        }
+
+        /* 狀態列 */
+        .status-bar {
+            height: 44px;
+            background: var(--card-white);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+            z-index: 10;
+        }
+
+        /* App 頭部 */
+        .app-header {
+            background: var(--card-white);
+            padding: 10px 20px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            z-index: 10;
+        }
+        .logo { 
+            font-size: 18px; 
+            font-weight: 800; 
+            color: var(--text-dark); 
+            letter-spacing: -0.5px;
+        }
+        .logo span { color: var(--primary-green); }
+        .user-badge {
+            background: var(--dawho-gold);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* 內容捲動區 */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 90px; /* 預留底部導航空間 */
+        }
+        /* 隱藏捲軸 */
+        .content-area::-webkit-scrollbar { display: none; }
+
+        /* 頁面切換機制 */
+        .page { display: none; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+
+        /* --- 元件樣式 --- */
+
+        /* CTL 儀表板 (Wahoo/運動風格) */
+        .ctl-dashboard {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            border-radius: 20px;
+            padding: 24px 20px;
+            color: white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            position: relative;
+        }
+        .ctl-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .ctl-title { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .ctl-value { font-size: 56px; font-weight: 700; line-height: 1; color: var(--primary-green); }
+        .ctl-unit { font-size: 14px; color: #aaa; margin-left: 5px; }
+
+        .ctl-tag { 
+            background: rgba(0, 143, 76, 0.2); 
+            color: #4ade80; 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold;
+            display: flex; align-items: center; gap: 4px;
+        }
+
+        /* 模擬圖表 */
+        .chart-visual {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            height: 60px;
+            margin-top: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+        }
+        .bar { flex: 1; background: #444; border-radius: 3px 3px 0 0; transition: height 0.5s ease; }
+        .bar.active { background: var(--dawho-gold); box-shadow: 0 0 10px rgba(197, 160, 101, 0.4); }
+
+        /* 區塊標題 */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px;
+        }
+        .section-title { font-size: 18px; font-weight: 700; color: var(--text-dark); }
+        .see-all { font-size: 12px; color: var(--primary-green); cursor: pointer; }
+
+        /* 任務卡片 (情境) */
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transition: transform 0.1s, box-shadow 0.1s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .task-card:active { transform: scale(0.98); }
+        .task-card:hover { border-color: var(--primary-green); }
+
+        .icon-box {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+        .icon-mrt { background: #e6f4ff; color: #00a0e9; }
+        .icon-coffee { background: #fff5e6; color: #c5a065; }
+        .icon-power { background: #fff9e6; color: #ffbb00; }
+
+        .task-content { flex: 1; }
+        .task-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .task-name { font-weight: 700; color: var(--text-dark); font-size: 15px; }
+        .task-gain { font-size: 12px; color: var(--primary-green); font-weight: bold; background: #e6f7ef; padding: 2px 6px; border-radius: 4px;}
+        .task-desc { font-size: 13px; color: var(--text-grey); line-height: 1.4; }
+
+        /* 生態圈 Grid */
+        .eco-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .eco-card {
+            background: white; border-radius: 16px; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); cursor: pointer;
+        }
+        .eco-icon { font-size: 32px; margin-bottom: 10px; }
+        .eco-text { font-weight: bold; color: var(--text-dark); font-size: 14px; }
+
+        /* 底部導航 */
+        .bottom-nav {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 85px;
+            background: white;
+            border-top: 1px solid #f0f0f0;
+            display: flex; justify-content: space-around;
+            padding-top: 12px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.02);
+            z-index: 20;
+        }
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: #ccc; cursor: pointer; width: 60px;
+        }
+        .nav-btn.active { color: var(--primary-green); }
+        .nav-btn .nav-icon { font-size: 24px; margin-bottom: 2px; }
+        .nav-btn span { font-size: 10px; font-weight: 500; }
+
+        /* 互動視窗 (Modal) */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: flex-end; /* 從下方滑出 */
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: white;
+            width: 100%;
+            border-radius: 24px 24px 0 0;
+            padding: 30px 25px 40px;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-header { text-align: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: 800; color: var(--text-dark); margin-bottom: 5px; }
+        .modal-subtitle { font-size: 14px; color: var(--text-grey); }
+
+        .modal-body { margin-bottom: 25px; background: #f9f9f9; padding: 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; color: #555;}
+
+        .btn-main {
+            width: 100%; padding: 14px; background: var(--dawho-bg); color: var(--dawho-gold);
+            border: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-bottom: 10px;
+            cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn-main:active { transform: scale(0.98); }
+
+        .btn-sub {
+            width: 100%; padding: 14px; background: transparent; color: #999;
+            border: none; font-weight: bold; font-size: 14px; cursor: pointer;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="iphone-frame">
+        <div class="status-bar">
+            <span>09:41</span>
+            <span>5G 100%</span>
+        </div>
+
+        <div class="app-header">
+            <div class="logo">SinoPac <span>Green</span></div>
+            <div class="user-badge">DAWHO 大戶</div>
+        </div>
+
+        <div class="content-area">
+
+            <div id="page-coach" class="page active">
+
+                <div class="ctl-dashboard" onclick="switchTab('page-stats')">
+                    <div class="ctl-top">
+                        <div>
+                            <div class="ctl-title">綠色體能 CTL</div>
+                            <div style="display:flex; align-items:baseline;">
+                                <div class="ctl-value">42</div>
+                                <div class="ctl-unit">TSS</div>
+                            </div>
+                        </div>
+                        <div class="ctl-tag">📈 狀態提升</div>
+                    </div>
+
+                    <div class="chart-visual">
+                        <div class="bar" style="height: 30%"></div>
+                        <div class="bar" style="height: 45%"></div>
+                        <div class="bar" style="height: 35%"></div>
+                        <div class="bar" style="height: 60%"></div>
+                        <div class="bar" style="height: 50%"></div>
+                        <div class="bar" style="height: 70%"></div>
+                        <div class="bar active" style="height: 85%"></div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; opacity: 0.6; text-align: right;">每週訓練負荷分析 ></div>
+                </div>
+
+                <div class="section-header">
+                    <span class="section-title">今日教練建議</span>
+                    <span class="see-all">查看全部</span>
+                </div>
+
+                <div class="task-card" onclick="openModal('mrt')">
+                    <div class="icon-box icon-mrt">🌧️</div>
+                    <div class="task-content">
+                        <div class="task-head">
+                            <span class="task-name">建議搭乘捷運</span>
+                            <span class="task-gain">+0.5 CTL</span>
+                        </div>
+                        <div class="task-desc">週三脫口秀之夜，降雨機率 87%。建議改搭捷運。</div>
+                    </div>
+                </div>
+
+                <div class="task-card" onclick="openModal('coffee')">
+                    <div class="icon-box icon-coffee">☕</div>
+                    <div class="task-content">
+                        <div class="task-head">
+                            <span class="task-name">低碳咖啡優惠</span>
+                            <span class="task-gain">+0.2 CTL</span>
+                        </div>
+                        <div class="task-desc">下午茶時間，附近 Louisa 提供永豐綠卡友 9 折。</div>
+                    </div>
+                </div>
+
+                <div class="task-card" onclick="openModal('power')">
+                    <div class="icon-box icon-power">⚡</div>
+                    <div class="task-content">
+                        <div class="task-head">
+                            <span class="task-name">用電異常偵測</span>
+                            <span class="task-gain">省 $180</span>
+                        </div>
+                        <div class="task-desc">不在家時電費仍高，建議使用定時插座。</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="page-stats" class="page">
+                <div class="section-header">
+                    <span class="section-title">體能數據分析</span>
+                </div>
+                <div style="background: white; padding: 20px; border-radius: 16px; min-height: 250px; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#ccc; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                    <div style="font-size: 40px; margin-bottom:10px;">📊</div>
+                    <div>詳細 CTL / ATL 曲線圖表</div>
+                    <div style="font-size: 12px; margin-top:5px;">(展示長期綠色習慣養成)</div>
+                </div>
+
+                <div class="section-header">
+                    <span class="section-title">成就解鎖</span>
+                </div>
+                 <div class="task-card">
+                    <div class="icon-box" style="background:#fff2f2; color:#ff4d4f;">🏆</div>
+                    <div class="task-content">
+                        <div class="task-head">
+                            <span class="task-name">減碳新星</span>
+                        </div>
+                        <div class="task-desc">連續 7 天達成教練建議目標。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-eco" class="page">
+                <div class="section-header">
+                    <span class="section-title">減碳生態圈</span>
+                    <span class="see-all">設定連結</span>
+                </div>
+                <div class="eco-grid">
+                    <div class="eco-card" onclick="alert('已跳轉至 WeMo App')">
+                        <div class="eco-icon">🛵</div>
+                        <div class="eco-text">共享機車</div>
+                    </div>
+                    <div class="eco-card" onclick="alert('已跳轉至 YouBike 2.0')">
+                        <div class="eco-icon">🚲</div>
+                        <div class="eco-text">公共自行車</div>
+                    </div>
+                    <div class="eco-card" onclick="alert('開啟 Tesla 充電地圖')">
+                        <div class="eco-icon">🔋</div>
+                        <div class="eco-text">充電服務</div>
+                    </div>
+                    <div class="eco-card" onclick="alert('開啟全家 FamiPort')">
+                        <div class="eco-icon">🏪</div>
+                        <div class="eco-text">綠色零售</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-btn active" onclick="switchTab('page-coach', this)">
+                <div class="nav-icon">🏠</div>
+                <span>教練</span>
+            </div>
+            <div class="nav-btn" onclick="switchTab('page-stats', this)">
+                <div class="nav-icon">📊</div>
+                <span>分析</span>
+            </div>
+            <div class="nav-btn" onclick="switchTab('page-eco', this)">
+                <div class="nav-icon">🌍</div>
+                <span>生態圈</span>
+            </div>
+            <div class="nav-btn">
+                <div class="nav-icon">👤</div>
+                <span>我的</span>
+            </div>
+        </div>
+
+        <div id="modal-mrt" class="modal-overlay" onclick="closeModal('mrt')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div style="font-size:40px; margin-bottom:10px;">🚇</div>
+                    <div class="modal-title">最佳通勤建議</div>
+                    <div class="modal-subtitle">預計節省 15 分鐘 | 減少 0.8kg 碳排</div>
+                </div>
+                <div class="modal-body">
+                    <strong>當前路況：</strong> 市民大道嚴重壅塞<br>
+                    <strong>建議路線：</strong> 捷運藍線 (市政府 -> 忠孝敦化)<br>
+                    <div style="margin-top:10px; font-size:12px; color:#888;">AI 預測雨勢將持續至晚間 9 點。</div>
+                </div>
+                <button class="btn-main" onclick="alert('已開啟 Google Maps 導航！行程結束自動匯入 CTL。'); closeModal('mrt')">
+                    開啟導航 (+0.5 CTL)
+                </button>
+                <button class="btn-sub" onclick="closeModal('mrt')">忽略建議</button>
+            </div>
+        </div>
+
+        <div id="modal-coffee" class="modal-overlay" onclick="closeModal('coffee')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div style="font-size:40px; margin-bottom:10px;">☕</div>
+                    <div class="modal-title">Louisa Coffee</div>
+                    <div class="modal-subtitle">綠色商店認證夥伴</div>
+                </div>
+                <div class="modal-body">
+                    <strong>卡友專屬優惠：</strong><br>
+                    使用永豐大戶卡/綠卡支付，全品項享 9 折優惠。該店已全面導入可分解杯材。
+                </div>
+                <button class="btn-main" onclick="alert('優惠券已領取至票夾！'); closeModal('coffee')">
+                    領取 9 折券
+                </button>
+                <button class="btn-sub" onclick="closeModal('coffee')">關閉</button>
+            </div>
+        </div>
+
+        <div id="modal-power" class="modal-overlay" onclick="closeModal('power')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div style="font-size:40px; margin-bottom:10px;">🔌</div>
+                    <div class="modal-title">居家節能報告</div>
+                    <div class="modal-subtitle">每月預估可省 $180</div>
+                </div>
+                <div class="modal-body">
+                    系統偵測平日 10:00-18:00 無人在家，但待機電力偏高。建議為飲水機與電視盒加裝<strong>智能定時插座</strong>。
+                </div>
+                <button class="btn-main" onclick="alert('已導向永豐商店：智能插座商品頁'); closeModal('power')">
+                    購買定時插座
+                </button>
+                <button class="btn-sub" onclick="closeModal('power')">稍後提醒</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 切換分頁邏輯
+        function switchTab(pageId, btn) {
+            // 隱藏所有頁面
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            // 顯示目標頁面
+            document.getElementById(pageId).classList.add('active');
+
+            // 如果有點擊底部按鈕，更新按鈕狀態
+            if(btn) {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            } else if (pageId === 'page-stats') {
+                // 如果是從 CTL 卡片點過來的，手動更新底部按鈕到「分析」
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.nav-btn')[1].classList.add('active');
+            }
+        }
+
+        // 開啟 Modal
+        function openModal(id) {
+            document.getElementById('modal-' + id).style.display = 'flex';
+        }
+
+        // 關閉 Modal
+        function closeModal(id) {
+            document.getElementById('modal-' + id).style.display = 'none';
+        }
+    </script>
+</body>
+</html>
